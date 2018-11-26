@@ -117,7 +117,6 @@ export default {
       this.loading = true
       axios.post(this.apiPath)
         .then(response => {
-          console.log('Got ' + response.data.edges.length + ' edges')
           this.graph = response.data
           this.selectedLinks = []
         })
@@ -129,7 +128,6 @@ export default {
       }
       axios.post(this.apiPath, extendedGraphParams)
         .then(response => {
-          console.log('(extended) got ' + response.data.edges.length + ' edges')
           this.extendedGraph = response.data
         })
         .finally(() => { this.loading = false })
