@@ -94,7 +94,7 @@ export default {
   props: ['object', 'detailComponent'],
   data () {
     return {
-      graph: [],
+      graph: {},
       loading: true,
       selectedLinks: [],
       extendedGraph: undefined
@@ -115,12 +115,6 @@ export default {
     fetchNeighbors () {
       console.log('fetching neighbors for ' + this.object.id)
       this.loading = true
-      axios.post(this.apiPath)
-        .then(response => {
-          this.graph = response.data
-          this.selectedLinks = []
-        })
-        .finally(() => { this.loading = false })
 
       let extendedGraphParams = {
         hops: 2,
@@ -129,8 +123,24 @@ export default {
       axios.post(this.apiPath, extendedGraphParams)
         .then(response => {
           this.extendedGraph = response.data
+          this.filterFirstStepNeighbors()
         })
         .finally(() => { this.loading = false })
+    },
+    filterFirstStepNeighbors () {
+      let localGraph = {}
+      localGraph['edges'] = this.extendedGraph.edges
+        .filter(edge => edge.source_ref === this.object.id || edge.target_ref === this.object.id)
+      let relevantIds = new Set(
+        localGraph['edges'].map(edge => edge.source_ref === this.object.id ? edge.target_ref : edge.source_ref)
+      )
+      localGraph['vertices'] = {}
+      Object.values(this.extendedGraph.vertices).map(vertice => {
+        if (relevantIds.has(vertice.id)) {
+          localGraph['vertices'][vertice.id] = vertice
+        }
+      })
+      this.graph = localGraph
     },
     getFilterEdges (filter) {
       return this.graph.edges.filter(edge => this.getVerticeForEdge(edge).type === filter)

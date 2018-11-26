@@ -65,15 +65,6 @@ export default {
       return killchain.settings[killchain.name]
     },
     getNeighbors () {
-      axios.post('/entities/' + this.entity.id + '/neighbors/')
-        .then(response => {
-          this.sortNeighborsByPhase(response.data)
-        })
-        .catch(error => {
-          console.log(error)
-        })
-        .finally(() => {})
-
       let extendedGraphParams = {
         hops: 2,
         include_original: true
@@ -81,8 +72,24 @@ export default {
       axios.post('/entities/' + this.entity.id + '/neighbors/', extendedGraphParams)
         .then(response => {
           this.extendedGraph = response.data
+          this.filterFirstStepNeighbors()
         })
         .finally(() => { this.loading = false })
+    },
+    filterFirstStepNeighbors () {
+      let localGraph = {}
+      localGraph['edges'] = this.extendedGraph.edges
+        .filter(edge => edge.source_ref === this.entity.id || edge.target_ref === this.entity.id)
+      let relevantIds = new Set(
+        localGraph['edges'].map(edge => edge.source_ref === this.entity.id ? edge.target_ref : edge.source_ref)
+      )
+      localGraph['vertices'] = {}
+      Object.values(this.extendedGraph.vertices).map(vertice => {
+        if (relevantIds.has(vertice.id)) {
+          localGraph['vertices'][vertice.id] = vertice
+        }
+      })
+      this.sortNeighborsByPhase(localGraph)
     },
     sortNeighborsByPhase (neighbors) {
       for (var neighbor of Object.values(neighbors.vertices)) {
